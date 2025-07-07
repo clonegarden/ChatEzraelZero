@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Anamnesis</title>
+  <script defer src="/src/frontend.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #fafafa; margin: 0; padding: 0; }
+    #chatbox { padding: 1em; max-width: 600px; margin: auto; height: 90vh; overflow-y: scroll; display: flex; flex-direction: column; }
+    .msg { padding: 10px; margin: 6px; border-radius: 16px; max-width: 70%; }
+    .user { align-self: flex-end; background: #007aff; color: white; }
+    .bot { align-self: flex-start; background: #e5e5ea; color: black; }
+    #inputArea { display: flex; padding: 1em; max-width: 600px; margin: auto; }
+    input { flex: 1; padding: 10px; border-radius: 16px; border: 1px solid #ccc; }
+    button { margin-left: 10px; border-radius: 16px; border: none; padding: 10px 16px; background: #007aff; color: white; }
+  </style>
+</head>
+<body>
+  <div id="chatbox"></div>
+  <div id="inputArea">
+    <input id="input" placeholder="Digite sua mensagem..." />
+    <button onclick="enviar()">Enviar</button>
+  </div>
+</body>
+</html>
