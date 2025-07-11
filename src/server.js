@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 const { getContext, appendUserMessage, appendAssistantMessage } = require('./memory');
 
 const app = express();
@@ -13,9 +13,9 @@ app.use(cors({
 
 app.use(express.json());
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-}));
+});
 
 app.post('/chat', async (req, res) => {
   try {
@@ -24,12 +24,12 @@ app.post('/chat', async (req, res) => {
     appendUserMessage(userInput);              // ✅ Salva mensagem no histórico do backend
     const context = getContext();              // ✅ Recupera o histórico + system prompt
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: context,
     });
 
-    const reply = completion.data.choices[0].message.content;
+    const reply = completion.choices[0].message.content;
 
     appendAssistantMessage(reply);             // ✅ Salva a resposta também no histórico
     res.json({ reply });
