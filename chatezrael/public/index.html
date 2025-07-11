@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -6,18 +7,22 @@
   <script defer src="frontend.js"></script>
   <style>
     body { font-family: sans-serif; background: #fafafa; margin: 0; padding: 0; }
-    #chatbox { padding: 1em; max-width: 600px; margin: auto; height: 90vh; overflow-y: scroll; display: flex; flex-direction: column; }
-    .msg { padding: 10px; margin: 6px; border-radius: 16px; max-width: 70%; }
+    #chat-container { padding: 1em; max-width: 600px; margin: auto; height: 80vh; overflow-y: scroll; display: flex; flex-direction: column; }
+    .message { padding: 10px; margin: 6px; border-radius: 16px; max-width: 70%; }
     .user { align-self: flex-end; background: #007aff; color: white; }
     .bot { align-self: flex-start; background: #e5e5ea; color: black; }
+    #status-bar { padding: 0.5em; text-align: center; font-size: 0.9em; }
+    #status-bar.visible { display: block !important; }
+    #status-bar.info { background: #d1ecf1; color: #0c5460; }
+    #status-bar.error { background: #f8d7da; color: #721c24; }
     #inputArea { display: flex; padding: 1em; max-width: 600px; margin: auto; }
-    input { flex: 1; padding: 10px; border-radius: 16px; border: 1px solid #ccc; }
-    button { margin-left: 10px; border-radius: 16px; border: none; padding: 10px 16px; background: #007aff; color: white; }
+    #chat-input { flex: 1; padding: 10px; border-radius: 16px; border: 1px solid #ccc; }
+    #send-button { margin-left: 10px; border-radius: 16px; border: none; padding: 10px 16px; background: #007aff; color: white; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div id="chat-container"></div>
   <div id="status-bar" style="display: none;"></div>
+  <div id="chat-container"></div>
   <div id="inputArea">
     <input id="chat-input" placeholder="Digite sua mensagem..." />
     <button id="send-button">Enviar</button>

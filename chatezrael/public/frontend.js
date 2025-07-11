@@ -1,9 +1,13 @@
+
 const chatContainer = document.getElementById('chat-container');
 const input = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
 const statusBar = document.getElementById('status-bar');
 
 let conversationHistory = []; // Aqui guardamos o histórico da sessão no frontend
+
+// URL do backend local
+const backendURL = 'http://localhost:3000';
 
 function showStatus(message, type = 'info') {
   statusBar.textContent = message;
@@ -27,9 +31,6 @@ function appendMessage(text, sender) {
 async function checkBackendStatus() {
   showStatus('Ezrael Noetiko: verificando backend...', 'info');
   try {
-    const backendURL = localStorage.getItem('REPLIT_BACKEND_URL');
-    if (!backendURL) throw new Error('URL do backend não configurada.');
-
     const response = await fetch(backendURL, { method: 'HEAD' });
     if (!response.ok) throw new Error('Backend não respondeu.');
 
@@ -37,7 +38,7 @@ async function checkBackendStatus() {
     setTimeout(hideStatus, 2000);
     return true;
   } catch (e) {
-    showStatus('⚠️ Backend offline ou inacessível. Verifique a conexão ou URL.', 'error');
+    showStatus('⚠️ Backend offline ou inacessível. Verifique se o servidor está rodando.', 'error');
     return false;
   }
 }
@@ -49,12 +50,6 @@ async function sendMessage() {
   appendMessage(text, 'user');
   input.value = '';
   showStatus('Enviando mensagem...', 'info');
-
-  const backendURL = localStorage.getItem('REPLIT_BACKEND_URL');
-  if (!backendURL) {
-    showStatus('⚠️ Backend não configurado. Vá para a tela inicial.', 'error');
-    return;
-  }
 
   // Adiciona a mensagem do usuário ao histórico local
   conversationHistory.push({ role: 'user', content: text });
