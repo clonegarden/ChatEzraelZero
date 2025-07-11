@@ -6,8 +6,8 @@ const statusBar = document.getElementById('status-bar');
 
 let conversationHistory = []; // Aqui guardamos o histórico da sessão no frontend
 
-// URL do backend local
-const backendURL = 'http://localhost:3000';
+// URL do backend - usa a URL atual do Replit
+const backendURL = window.location.origin;
 
 function showStatus(message, type = 'info') {
   statusBar.textContent = message;
@@ -75,11 +75,19 @@ async function sendMessage() {
   }
 }
 
-sendButton.addEventListener('click', sendMessage);
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendMessage();
-});
-
-window.addEventListener('load', async () => {
-  await checkBackendStatus();
+// Aguarda o DOM carregar completamente antes de adicionar event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Verifica se todos os elementos existem antes de adicionar event listeners
+  if (sendButton) {
+    sendButton.addEventListener('click', sendMessage);
+  }
+  
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+  
+  // Verifica status do backend após carregar
+  checkBackendStatus();
 });
