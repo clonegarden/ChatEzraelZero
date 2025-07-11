@@ -63,7 +63,7 @@ async function sendMessage() {
     const response = await fetch(backendURL + '/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: conversationHistory }),
+      body: JSON.stringify({ content: text }),
     });
 
     if (!response.ok) throw new Error('Resposta inválida do backend.');

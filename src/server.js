@@ -40,7 +40,11 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-app.use(express.static('public'));
+app.use(express.static('chatezrael/public'));
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/../chatezrael/public/index.html');
+});
 
 app.listen(3000, () => {
   console.log('Servidor rodando em http://localhost:3000');
