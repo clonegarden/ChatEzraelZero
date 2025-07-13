@@ -55,9 +55,13 @@ res.json({ reply });
 
 } catch (err) { console.error('💥 Erro ao chamar OpenAI:', err?.response?.data || err.message || err); res.status(500).json({ error: 'Erro ao processar resposta.' }); } });
 
-// 🌍 Serve frontend local (opcional no Replit) app.use(express.static('chatezrael/public'));
+// 🌍 Serve frontend local (opcional no Replit)
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../chatezrael/public')));
 
-app.get('/', (req, res) => { res.sendFile(__dirname + '/../chatezrael/public/index.html'); });
+app.get('/', (req, res) => { 
+  res.sendFile(path.join(__dirname, '../chatezrael/public/index.html')); 
+});
 
 // 🚀 Start do servidor
 const PORT = process.env.PORT || 3000;
