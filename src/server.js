@@ -1,4 +1,4 @@
-const express = require('express'); const cors = require('cors'); const cookieParser = require('cookie-parser'); const OpenAI = require('openai'); const { getContext, appendUserMessage, appendAssistantMessage, resetHistory } = require('./memory'); const { updateProfileCookie } = require('../CookieManager');
+const express = require('express'); const cors = require('cors'); const cookieParser = require('cookie-parser'); const OpenAI = require('openai'); const { getContext, appendUserMessage, appendAssistantMessage, resetHistory } = require('./memory'); const { updateProfileCookie, decodeCookie } = require('../CookieManager');
 
 const app = express();
 
@@ -37,7 +37,7 @@ if (!userInput || userInput.trim().length < 2) {
 }
 
 // ⬇️ Atualiza cookie do usuário
-updateProfileCookie(req, res, userInput);
+updateProfileCookie(req, res);
 
 appendUserMessage(userInput);
 const context = getContext();
