@@ -1,4 +1,7 @@
-// middleware/cookieManager.js const crypto = require('crypto'); const COOKIE_NAME = 'ezrael_profile'; const SECRET_KEY = process.env.COOKIE_SECRET || 'chave_muito_secreta';
+// middleware/cookieManager.js 
+const crypto = require('crypto'); 
+const COOKIE_NAME = 'ezrael_profile'; 
+const SECRET_KEY = process.env.COOKIE_SECRET || 'chave_muito_secreta';
 
 function sign(data) { return crypto.createHmac('sha256', SECRET_KEY).update(data).digest('hex'); }
 
@@ -12,5 +15,5 @@ const profile = { user_id: existing.user_id || crypto.randomUUID(), nome: existi
 
 const cookie = encodeCookie(profile); res.cookie(COOKIE_NAME, cookie, { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 }); return profile; }
 
-module.exports = { updateProfileCookie, decodeCookie };
+module.exports = { updateProfileCookie, decodeCookie, COOKIE_NAME };
 
