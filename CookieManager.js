@@ -2,7 +2,7 @@
 
 function sign(data) { return crypto.createHmac('sha256', SECRET_KEY).update(data).digest('hex'); }
 
-function encodeCookie(obj) { const json = JSON.stringify(obj); const signature = sign(json); const payload = Buffer.from(json).toString('base64'); return ${payload}.${signature}; }
+function encodeCookie(obj) { const json = JSON.stringify(obj); const signature = sign(json); const payload = Buffer.from(json).toString('base64'); return `${payload}.${signature}`; }
 
 function decodeCookie(cookie) { if (!cookie) return null; const [payload, signature] = cookie.split('.'); const json = Buffer.from(payload, 'base64').toString(); if (sign(json) !== signature) return null; return JSON.parse(json); }
 
