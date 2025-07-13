@@ -14,7 +14,9 @@ app.use(cookieParser()); app.use(express.json());
 
 // 🔄 Reset do histórico (opcional) app.post('/reset', (req, res) => { resetHistory(); console.log('🧹 Histórico resetado.'); res.json({ status: 'Histórico resetado com sucesso.' }); });
 
-// 🤖 Rota principal do chat app.post('/chat', async (req, res) => { try { console.log('📥 Requisição recebida:', req.body);
+// 🤖 Rota principal do chat
+app.post('/chat', async (req, res) => {
+ try { console.log('📥 Requisição recebida:', req.body);
 
 let userInput = '';
 
@@ -54,4 +56,3 @@ res.json({ reply });
 app.get('/', (req, res) => { res.sendFile(__dirname + '/../chatezrael/public/index.html'); });
 
 // 🚀 Start do servidor app.listen(3000, '0.0.0.0', () => { console.log('🟢 Servidor rodando em http://0.0.0.0:3000'); });
-
