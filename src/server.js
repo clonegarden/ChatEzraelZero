@@ -1,4 +1,4 @@
-const express = require('express'); const cors = require('cors'); const cookieParser = require('cookie-parser'); const OpenAI = require('openai'); const { getContext, appendUserMessage, appendAssistantMessage, resetHistory } = require('./memory'); const { updateProfileCookie } = require('./cookieManager');
+const express = require('express'); const cors = require('cors'); const cookieParser = require('cookie-parser'); const OpenAI = require('openai'); const { getContext, appendUserMessage, appendAssistantMessage, resetHistory } = require('./memory'); const { updateProfileCookie } = require('../CookieManager');
 
 const app = express();
 
