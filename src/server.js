@@ -12,7 +12,10 @@ app.use(cors({
 
 app.use(cookieParser()); app.use(express.json());
 
-// 🔐 OpenAI const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, });
+// 🔐 OpenAI 
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY, 
+});
 
 // ✅ Ping route (verificação do backend) app.get('/ping', (req, res) => { res.status(200).send('pong'); });
 
