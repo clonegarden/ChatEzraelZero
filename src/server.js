@@ -2,9 +2,13 @@ const express = require('express'); const cors = require('cors'); const cookiePa
 
 const app = express();
 
-// 🌐 CORS dinâmico para Freehostia + Replit const allowedOrigins = [ 'http://katoptron.institutomalleusdei.org', 'https://katoptron.institutomalleusdei.org', 'https://<SEU-SUBDOMINIO>.replit.dev' ];
-
-app.use(cors({ origin: function (origin, callback) { if (!origin || allowedOrigins.includes(origin)) { callback(null, true); } else { console.warn('🚫 CORS bloqueado para:', origin); callback(new Error('CORS não permitido')); } }, methods: ['GET', 'POST'], allowedHeaders: ['Content-Type'], credentials: true }));
+// 🌐 CORS liberado para desenvolvimento
+app.use(cors({
+  origin: true, // Permite qualquer origem durante desenvolvimento
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true
+}));
 
 app.use(cookieParser()); app.use(express.json());
 
@@ -55,4 +59,10 @@ res.json({ reply });
 
 app.get('/', (req, res) => { res.sendFile(__dirname + '/../chatezrael/public/index.html'); });
 
-// 🚀 Start do servidor app.listen(3000, '0.0.0.0', () => { console.log('🟢 Servidor rodando em http://0.0.0.0:3000'); });
+// 🚀 Start do servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🟢 Servidor rodando em http://0.0.0.0:${PORT}`);
+  console.log(`🌍 Frontend disponível em: http://0.0.0.0:${PORT}`);
+  console.log('✅ Backend funcionando - teste com /ping');
+});
