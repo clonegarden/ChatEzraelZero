@@ -40,15 +40,21 @@ if (!userInput || userInput.trim().length < 2) {
 }
 
 // ⬇️ Atualiza cookie do usuário
-const userProfile = updateProfileCookie(req, res);
+const userProfile = updateProfileCookie(req, res, userInput);
 console.log('🍪 Cookie do usuário:', {
   user_id: userProfile.user_id,
   ip: req.ip,
   existing_cookie: !!req.cookies[require('../CookieManager').COOKIE_NAME]
 });
 
-appendUserMessage(userInput);
-const context = getContext();
+// 🎯 Personaliza mensagem com dados do usuário
+let contextualPrompt = userInput;
+if (userProfile.nome) {
+  contextualPrompt = `[Usuário: ${userProfile.nome}] ${userInput}`;
+}
+
+appendUserMessage(contextualPrompt);
+const context = getContext(3000, userProfile);
 
 const completion = await openai.chat.completions.create({
   model: 'gpt-4o',
