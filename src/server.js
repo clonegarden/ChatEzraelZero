@@ -40,7 +40,12 @@ if (!userInput || userInput.trim().length < 2) {
 }
 
 // ⬇️ Atualiza cookie do usuário
-updateProfileCookie(req, res);
+const userProfile = updateProfileCookie(req, res);
+console.log('🍪 Cookie do usuário:', {
+  user_id: userProfile.user_id,
+  ip: req.ip,
+  existing_cookie: !!req.cookies[require('../CookieManager').COOKIE_NAME]
+});
 
 appendUserMessage(userInput);
 const context = getContext();
