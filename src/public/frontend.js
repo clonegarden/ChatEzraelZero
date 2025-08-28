@@ -9,6 +9,24 @@ localStorage.setItem('sessionId', sessionId);
 
 let conversationHistory = JSON.parse(localStorage.getItem(sessionId)) || [];
 
+
+// Simples animação JavaScript para efeito visual
+function createMysticalEffect() {
+  const container = document.querySelector('.container');
+
+  setInterval(() => {
+    const glow = document.createElement('div');
+    glow.className = 'glow-effect';
+    glow.style.left = `${Math.random() * 100}%`;
+    container.appendChild(glow);
+
+    setTimeout(() => container.removeChild(glow), 3000);
+  }, 2000);
+}
+
+// Add animation effect on load
+document.addEventListener('DOMContentLoaded', createMysticalEffect);
+
 // URL do backend - mesma origem
 const backendURL = window.location.origin;
 
