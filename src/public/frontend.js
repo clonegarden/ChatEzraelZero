@@ -32,8 +32,12 @@ const backendURL = window.location.origin;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-  renderHistory();
-  checkBackendStatus();
+  const loggedInUser = localStorage.getItem('loggedInUser');
+  if (!loggedInUser) {
+    showLoginScreen();
+  } else {
+    showChatScreen();
+  }
 
   sendButton.addEventListener('click', sendMessage);
   input.addEventListener('keydown', (e) => {
