@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const { OpenAI } = require('openai');
 const memory = require('./memory');
 const { updateProfileCookie, decodeCookie, COOKIE_NAME } = require('./CookieManager.js');
+const { authenticate, isLoggedIn } = require('./auth');
 const path = require('path');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const { Storage } = require('@google-cloud/storage');
@@ -88,7 +89,11 @@ app.post('/reset', async (req, res) => {
 });
 
 // Rota principal do chat
-app.post('/chat', async (req, res) => {
+app.post('/chat', async (req, res, next) => {
+  if (!isLoggedIn(req)) {
+    return res.status(403).json({ error: 'Access denied. Please log in first.' });
+  }
+  next();
   try {
     // Obtém ou gera sessionId do cookie
     let sessionId = req.cookies.sessionId;
@@ -115,6 +120,19 @@ app.post('/chat', async (req, res) => {
       messages,
       options
     });
+
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = authenticate(username, password);
+
+  if (user) {
+    res.cookie('loggedInUser', user.username, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+    res.json({ success: true, message: 'Login successful' });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
+  }
+});
 
     // Extrai conteúdo da última mensagem do usuário
     const userInput = messages.slice(-1)[0]?.content || '';
