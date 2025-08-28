@@ -6,12 +6,12 @@
   <script defer src="frontend.js"></script>
   <style>
     :root {
-      --primary: #512da8;
-      --secondary: #311b92;
-      --background-dark: #1e2235;
-      --accent: #82b1ff;
+      --primary: #008080; /* Teal color */
+      --secondary: #006666; /* Darker teal */
+      --background-dark: #003333; /* Dark teal background */
+      --accent: #00ffff; /* Lighter Teal for accents */
       --text-light: #e0e0e0;
-      --glow: #69f0ae;
+      --glow: #004c4c; /* Teal glow */
     }
 
     body {
@@ -154,7 +154,7 @@
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 50%;
+      border-radius: 4px; /* Change to square shape */
       width: 50px;
       height: 50px;
       margin-left: 12px;
@@ -163,7 +163,7 @@
       align-items: center;
       justify-content: center;
       transition: all 0.3s;
-      box-shadow: 0 4px 10px rgba(81, 45, 168, 0.5);
+      box-shadow: 0 4px 10px rgba(0, 128, 128, 0.5); /* Teal shadow */
     }
 
     #send-button:hover {
@@ -209,10 +209,15 @@
 
     .particle {
       position: absolute;
-      background-color: rgba(105, 240, 174, 0.6); /* Using --glow color */
+      background-color: rgba(255, 255, 255, 0.2); /* White with low opacity */
       border-radius: 50%;
       opacity: 0;
       animation: particle-animation 5s infinite linear;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: black; /* Black symbols */
     }
 
     @keyframes particle-animation {
