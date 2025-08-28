@@ -30,6 +30,19 @@ document.addEventListener('DOMContentLoaded', createMysticalEffect);
 // URL do backend - mesma origem
 const backendURL = window.location.origin;
 
+function showLoginScreen() {
+  document.getElementById('login-container').style.display = 'flex';
+  document.querySelector('.container').style.display = 'none';
+  document.getElementById('login-form').addEventListener('submit', handleLogin);
+}
+
+function showChatScreen() {
+  document.getElementById('login-container').style.display = 'none';
+  document.querySelector('.container').style.display = 'block';
+  renderHistory();
+  checkBackendStatus();
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
   const loggedInUser = localStorage.getItem('loggedInUser');
