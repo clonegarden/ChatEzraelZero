@@ -10,9 +10,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
+    "@anthropic-ai/sdk": "^0.56.0",
+    "@google-cloud/storage": "^7.16.0",
+    "@google-cloud/text-to-speech": "^6.2.0",
+    "@pinecone-database/pinecone": "^6.1.2",
+    "@replit/database": "^3.0.1",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "openai": "^4.30.0",
-    "cookie-parser": "^1.4.6"
+    "express": "^4.18.2",
+    "openai": "^4.30.0"
   }
 }
