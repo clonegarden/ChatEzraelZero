@@ -89,11 +89,11 @@ app.post('/reset', async (req, res) => {
 });
 
 // Rota principal do chat
-app.post('/chat', async (req, res, next) => {
-  if (!isLoggedIn(req)) {
-    return res.status(403).json({ error: 'Access denied. Please log in first.' });
-  }
-  next();
+app.post('/chat', async (req, res) => {
+  // For now, bypass authentication check
+  // if (!isLoggedIn(req)) {
+  //   return res.status(403).json({ error: 'Access denied. Please log in first.' });
+  // }
   try {
     // Obtém ou gera sessionId do cookie
     let sessionId = req.cookies.sessionId;

@@ -31,13 +31,12 @@ document.addEventListener('DOMContentLoaded', createMysticalEffect);
 const backendURL = window.location.origin;
 
 function showLoginScreen() {
-  document.getElementById('login-container').style.display = 'flex';
-  document.querySelector('.container').style.display = 'none';
-  document.getElementById('login-form').addEventListener('submit', handleLogin);
+  // Login elements don't exist in current HTML, skip for now
+  console.log('Login screen requested but not implemented');
 }
 
 function showChatScreen() {
-  document.getElementById('login-container').style.display = 'none';
+  // Just ensure chat is visible and working
   document.querySelector('.container').style.display = 'block';
   renderHistory();
   checkBackendStatus();
@@ -45,12 +44,9 @@ function showChatScreen() {
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-  const loggedInUser = localStorage.getItem('loggedInUser');
-  if (!loggedInUser) {
-    showLoginScreen();
-  } else {
-    showChatScreen();
-  }
+  // For now, bypass login and set a default user
+  localStorage.setItem('loggedInUser', 'defaultUser');
+  showChatScreen();
 
   sendButton.addEventListener('click', sendMessage);
   input.addEventListener('keydown', (e) => {
