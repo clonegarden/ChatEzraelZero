@@ -170,6 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
       sendMessage();
     }
   });
+
+  // Add logout button functionality
+  const logoutButton = document.getElementById('logout-button');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', logout);
+  }
 });
 
 function renderHistory() {
