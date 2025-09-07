@@ -22,20 +22,40 @@
       background: var(--background-dark);
       color: var(--text-light);
       margin: 0;
-      padding: 20px;
+      padding: 0;
       min-height: 100vh;
-      overflow: hidden;
       font-weight: 400;
       line-height: 1.5;
+      display: flex;
+    }
+
+    .app-layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: var(--background-card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     .container {
-      max-width: 800px;
-      margin: auto;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
       background: var(--background-card);
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid var(--border);
       position: relative;
       z-index: 1;
     }
@@ -227,7 +247,7 @@
     }
 
     .chat-container {
-      height: 60vh;
+      flex: 1;
       overflow-y: auto;
       padding: 20px;
       display: flex;
@@ -331,6 +351,185 @@
       color: var(--accent);
     }
 
+    /* Sidebar Styles */
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .sidebar-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-light);
+      margin: 0;
+    }
+
+    .user-profile {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-light);
+      margin: 0;
+    }
+
+    .user-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 2px 0 0 0;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    .chat-history-header {
+      padding: 16px 20px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .history-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .history-item:hover {
+      background: var(--background-dark);
+    }
+
+    .history-item.active {
+      background: var(--background-dark);
+      border-left-color: var(--primary);
+    }
+
+    .history-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-light);
+      margin: 0 0 4px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-preview {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .sidebar-actions {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .new-chat-btn:hover {
+      background: var(--secondary);
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        display: none;
+      }
+
+      .sidebar-overlay.show {
+        display: block;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+        padding: 8px;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        border-radius: 4px;
+        cursor: pointer;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+      }
+    }
+
+    .mobile-menu-btn {
+      display: none;
+    }
+
   </style>
 </head>
 <body>
@@ -374,34 +573,71 @@
     </div>
   </div>
 
-  <div class="container">
-    <header>
-      <span class="mystical-symbol-header left">∴</span>
-      <h1>Ezrael Noetiko</h1>
-      <span class="mystical-symbol-header right">☿</span>
-      <div class="subtitle">Middleware de IA Místico</div>
-    </header>
+  <!-- Main App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">⧨ Ezrael Noetiko ⧨</h2>
+      </div>
 
-    <div id="status-bar" class="status-bar">Iniciando sistema...</div>
+      <div class="user-profile">
+        <div class="user-avatar" id="user-avatar">E</div>
+        <div class="user-info">
+          <p class="user-name" id="user-name">Usuário</p>
+          <p class="user-status">Conectado ao Portal</p>
+        </div>
+      </div>
 
-    <div id="chat-container" class="chat-container">
-      <div class="message bot">
-        Olá! Eu sou o Ezrael Noetiko, seu assistente IA místico. Como posso ajudar você hoje?
+      <div class="chat-history">
+        <div class="chat-history-header">Histórico de Conversas</div>
+        <div id="history-list">
+          <!-- Chat history items will be populated here -->
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="new-chat-btn" id="new-chat-btn">+ Nova Conversa</button>
       </div>
     </div>
 
-    <div class="input-container">
-      <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" />
-      <button id="send-button">➤</button>
-    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="container">
+        <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+        
+        <header>
+          <span class="mystical-symbol-header left">∴</span>
+          <h1>Ezrael Noetiko</h1>
+          <span class="mystical-symbol-header right">☿</span>
+          <div class="subtitle">Middleware de IA Místico</div>
+        </header>
 
-    <footer>
-      <span class="mystical-symbol-footer left">§</span>
-      Conectado ao backend Replit | v1.0
-      <button id="logout-button" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.15s ease;">Sair</button>
-      <span class="mystical-symbol-footer right">※</span>
-    </footer>
+        <div id="status-bar" class="status-bar">Iniciando sistema...</div>
+
+        <div id="chat-container" class="chat-container">
+          <div class="message bot">
+            Olá! Eu sou o Ezrael Noetiko, seu assistente IA místico. Como posso ajudar você hoje?
+          </div>
+        </div>
+
+        <div class="input-container">
+          <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" />
+          <button id="send-button">➤</button>
+        </div>
+
+        <footer>
+          <span class="mystical-symbol-footer left">§</span>
+          Conectado ao backend Replit | v1.0
+          <button id="logout-button" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.15s ease;">Sair</button>
+          <span class="mystical-symbol-footer right">※</span>
+        </footer>
+      </div>
+    </div>
   </div>
+
+  <!-- Mobile Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
 </body>
 </html>
