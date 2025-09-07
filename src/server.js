@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const { OpenAI } = require('openai');
 const memory = require('./memory');
 const { updateProfileCookie, decodeCookie, COOKIE_NAME } = require('./CookieManager.js');
-const { authenticate, isLoggedIn } = require('./auth');
+const { authenticate, isLoggedIn, registerUser } = require('./auth');
 const path = require('path');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const { Storage } = require('@google-cloud/storage');
@@ -122,15 +122,65 @@ app.post('/chat', async (req, res) => {
     });
 
 
+// Login endpoint
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = authenticate(username, password);
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Usuário e senha são obrigatórios' });
+    }
 
-  if (user) {
-    res.cookie('loggedInUser', user.username, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
-    res.json({ success: true, message: 'Login successful' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid username or password' });
+    const user = authenticate(username, password);
+
+    if (user) {
+      res.cookie('loggedInUser', user.username, { 
+        httpOnly: true, 
+        maxAge: 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        secure: false // Set to true in production with HTTPS
+      });
+      res.json({ success: true, message: 'Login realizado com sucesso', user });
+    } else {
+      res.status(401).json({ success: false, message: 'Usuário ou senha inválidos' });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// Registration endpoint
+app.post('/register', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Usuário e senha são obrigatórios' });
+    }
+
+    const result = registerUser(username, password);
+    
+    if (result.success) {
+      res.status(201).json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// Logout endpoint
+app.post('/logout', (req, res) => {
+  try {
+    res.clearCookie('loggedInUser');
+    res.clearCookie('sessionId');
+    res.json({ success: true, message: 'Logout realizado com sucesso' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
 
