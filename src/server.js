@@ -88,39 +88,6 @@ app.post('/reset', async (req, res) => {
   }
 });
 
-// Rota principal do chat
-app.post('/chat', async (req, res) => {
-  if (!isLoggedIn(req)) {
-    return res.status(403).json({ error: 'Acesso negado. Faça login primeiro.' });
-  }
-  try {
-    // Obtém ou gera sessionId do cookie
-    let sessionId = req.cookies.sessionId;
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-      res.cookie('sessionId', sessionId, { 
-        httpOnly: true, 
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
-        sameSite: 'none',
-        secure: true
-      });
-      console.log(`🆕 Nova sessionId gerada: ${sessionId}`);
-    }
-
-    // Validação de entrada robusta
-    const { messages, options = {} } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: "Corpo inválido: 'messages' é obrigatório e deve ser array não vazio." });
-    }
-
-    console.log('📥 Chat request:', {
-      origin: req.headers.origin,
-      sessionId,
-      messages,
-      options
-    });
-
-
 // Login endpoint
 app.post('/login', (req, res) => {
   try {
@@ -182,6 +149,38 @@ app.post('/logout', (req, res) => {
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
+
+// Rota principal do chat
+app.post('/chat', async (req, res) => {
+  if (!isLoggedIn(req)) {
+    return res.status(403).json({ error: 'Acesso negado. Faça login primeiro.' });
+  }
+  try {
+    // Obtém ou gera sessionId do cookie
+    let sessionId = req.cookies.sessionId;
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      res.cookie('sessionId', sessionId, { 
+        httpOnly: true, 
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
+        sameSite: 'none',
+        secure: true
+      });
+      console.log(`🆕 Nova sessionId gerada: ${sessionId}`);
+    }
+
+    // Validação de entrada robusta
+    const { messages, options = {} } = req.body;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Corpo inválido: 'messages' é obrigatório e deve ser array não vazio." });
+    }
+
+    console.log('📥 Chat request:', {
+      origin: req.headers.origin,
+      sessionId,
+      messages,
+      options
+    });
 
     // Extrai conteúdo da última mensagem do usuário
     const userInput = messages.slice(-1)[0]?.content || '';
