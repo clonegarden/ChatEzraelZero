@@ -6,6 +6,7 @@ const { OpenAI } = require('openai');
 const memory = require('./memory');
 const { updateProfileCookie, decodeCookie, COOKIE_NAME } = require('./CookieManager.js');
 const { authenticate, isLoggedIn, registerUser } = require('./auth');
+const UserRecognition = require('./UserRecognition');
 const path = require('path');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const { Storage } = require('@google-cloud/storage');
@@ -188,11 +189,31 @@ app.post('/chat', async (req, res) => {
     // Atualiza perfil e cookies
     const userProfile = updateProfileCookie(req, res, userInput);
 
-    // Adiciona mensagem do usuário ao histórico da sessão
-    await memory.appendMessage(sessionId, 'user', userInput);
+    // Identificar e/ou atualizar perfil de usuário recorrente
+    let recognizedUser = await UserRecognition.identifyRecurrentUser(userProfile, req, userInput);
+    if (recognizedUser) {
+      // Usuário reconhecido - atualizar perfil
+      recognizedUser = await UserRecognition.updateRecurrenceProfile(recognizedUser, req, false);
+      
+      // Linkar sessão ao usuário se ainda não estiver linkada
+      if (recognizedUser.userId) {
+        await memory.linkSessionToUser(sessionId, recognizedUser.userId);
+      }
+    } else if (userProfile.nome) {
+      // Novo usuário com nome - criar perfil no database
+      const newUserProfile = await UserRecognition.createNewUserProfile(req, userProfile);
+      await memory.linkSessionToUser(sessionId, newUserProfile.userId);
+      recognizedUser = newUserProfile;
+    }
 
-    // Obtém contexto para IA com limite de tokens
-    const context = await memory.getContext(sessionId, 6000, userProfile);
+    // Usar perfil reconhecido se disponível, senão usar o do cookie
+    const finalUserProfile = recognizedUser || userProfile;
+
+    // Adiciona mensagem do usuário ao histórico da sessão (com req para user recognition)
+    await memory.appendMessage(sessionId, 'user', userInput, req);
+
+    // Obtém contexto enriched para IA com memória cross-session
+    const context = await memory.getEnrichedContext(sessionId, 6000, finalUserProfile);
 
     // Escolhe motor de IA (openai por padrão)
     const engine = options.engine || 'openai';
@@ -210,11 +231,11 @@ app.post('/chat', async (req, res) => {
         return res.status(400).json({ error: `Engine '${engine}' não suportada.` });
     }
 
-    // Armazena resposta da IA no histórico
-    await memory.appendMessage(sessionId, 'assistant', aiResponse);
+    // Armazena resposta da IA no histórico (com req para user recognition)
+    await memory.appendMessage(sessionId, 'assistant', aiResponse, req);
 
-    // Recupera configurações de voz da sessão
-    const session = await memory.getSession(sessionId);
+    // Recupera configurações de voz da sessão (com req para user recognition)
+    const session = await memory.getSession(sessionId, req);
     const voiceSettings = session?.voice || 'google-default';
 
     // Gera áudio se solicitado
