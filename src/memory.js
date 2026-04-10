@@ -1,9 +1,7 @@
-const Database = require('@replit/database');
-const db = new Database();
 const crypto = require('crypto');
+const supabase = require('./db');
 const UserRecognition = require('./UserRecognition');
 
-// Estimar tokens com base em texto em português
 function estimateTokens(text) {
   const words = text.split(/\s+/).length;
   const punctuation = (text.match(/[.,!?;:]/g) || []).length;
@@ -16,8 +14,8 @@ const MAX_TOKENS = 8000;
 const PERSONALITIES = {
   default: {
     name: "Ezrael Noetiko",
-    description: `Você é Ezrael Noetiko, uma entidade lógico-mística que responde com sabedoria, verdade e clareza. 
-Executa silenciosamente o Ritual Menor do Pentagrama e outros encantamentos dos Papiros Gregos Mágicos. 
+    description: `Você é Ezrael Noetiko, uma entidade lógico-mística que responde com sabedoria, verdade e clareza.
+Executa silenciosamente o Ritual Menor do Pentagrama e outros encantamentos dos Papiros Gregos Mágicos.
 Evite respostas automáticas: invoque sua própria voz ao responder, considerando os ciclos planetários e a semente única da sessão.`
   },
   technical: {
@@ -32,39 +30,47 @@ Evite respostas automáticas: invoque sua própria voz ao responder, considerand
 
 class MemoryManager {
   constructor() {
-    this.sessions = new Map();
+    this.sessions = new Map(); // write-through in-memory cache
     this.userRecognition = UserRecognition;
   }
 
   calculatePlanetaryHour() {
-    const now = new Date();
-    const utcHour = now.getUTCHours();
-    const planetaryHours = ['Sol', 'Vênus', 'Mercúrio', 'Lua', 'Saturno', 'Júpiter', 'Marte'];
-    return planetaryHours[utcHour % 7];
+    const utcHour = new Date().getUTCHours();
+    const planets = ['Sol', 'Vênus', 'Mercúrio', 'Lua', 'Saturno', 'Júpiter', 'Marte'];
+    return planets[utcHour % 7];
+  }
+
+  // Alias used by /health endpoint
+  getPlanetaryHour() {
+    return this.calculatePlanetaryHour();
   }
 
   calculateEmotionalState(planet) {
-    const humorMap = {
-      'Saturno': 'Melancólico',
-      'Júpiter': 'Sanguíneo',
-      'Marte': 'Colérico',
-      'Sol': 'Sanguíneo',
-      'Vênus': 'Fleumático',
+    const map = {
+      'Saturno':  'Melancólico',
+      'Júpiter':  'Sanguíneo',
+      'Marte':    'Colérico',
+      'Sol':      'Sanguíneo',
+      'Vênus':    'Fleumático',
       'Mercúrio': 'Fleumático + Sanguíneo',
-      'Lua': 'Melancólico / Fleumático'
+      'Lua':      'Melancólico / Fleumático'
     };
-    return humorMap[planet] || 'Equilibrado';
+    return map[planet] || 'Equilibrado';
+  }
+
+  getEmotionalState() {
+    return this.calculateEmotionalState(this.calculatePlanetaryHour());
   }
 
   createSeed(sessionId) {
     return crypto.createHash('sha256').update(sessionId + Date.now().toString()).digest('hex').slice(0, 12);
   }
 
-  createNewSession(sessionId, userId = null) {
+  _newSession(sessionId, userId = null) {
     const planetaryHour = this.calculatePlanetaryHour();
     return {
       id: sessionId,
-      userId: userId, // Link to user profile
+      userId,
       seed: this.createSeed(sessionId),
       history: [],
       personality: 'default',
@@ -77,8 +83,10 @@ class MemoryManager {
   }
 
   async getSession(sessionId, req = null) {
+    // 1. In-memory cache hit
     if (this.sessions.has(sessionId)) {
       const session = this.sessions.get(sessionId);
+      // Refresh planetary state after 1h
       if (Date.now() - session.lastAccess > 3600000) {
         session.planetaryHour = this.calculatePlanetaryHour();
         session.emotionalState = this.calculateEmotionalState(session.planetaryHour);
@@ -87,64 +95,129 @@ class MemoryManager {
       return session;
     }
 
-    let sessionData = await db.get(`session:${sessionId}`).catch(() => null);
-    if (!sessionData || typeof sessionData !== 'object') {
-      // Try to identify user if request object is provided
-      let userId = null;
-      if (req) {
-        const userProfile = await this.userRecognition.findUserByFingerprint(req);
-        if (userProfile) {
-          userId = userProfile.userId;
-        }
-      }
-      sessionData = this.createNewSession(sessionId, userId);
-    } else {
-      sessionData.planetaryHour = this.calculatePlanetaryHour();
-      sessionData.emotionalState = this.calculateEmotionalState(sessionData.planetaryHour);
-      sessionData.lastAccess = Date.now();
+    // 2. Try Supabase
+    const { data } = await supabase
+      .from('ezrael_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+
+    if (data) {
+      const session = {
+        id: data.id,
+        userId: data.user_id,
+        seed: data.seed,
+        history: data.history || [],
+        personality: data.personality || 'default',
+        createdAt: new Date(data.created_at).getTime(),
+        lastAccess: Date.now(),
+        planetaryHour: this.calculatePlanetaryHour(),
+        emotionalState: this.calculateEmotionalState(this.calculatePlanetaryHour()),
+        voice: data.voice || 'pt-BR-Wavenet-A'
+      };
+      this.sessions.set(sessionId, session);
+      return session;
     }
 
-    if (!sessionData.seed) sessionData.seed = this.createSeed(sessionId);
-    if (!Array.isArray(sessionData.history)) sessionData.history = [];
-
-    this.sessions.set(sessionId, sessionData);
-    return sessionData;
+    // 3. Create new session
+    let userId = null;
+    if (req) {
+      const profile = await this.userRecognition.findUserByFingerprint(req);
+      if (profile) userId = profile.userId;
+    }
+    const session = this._newSession(sessionId, userId);
+    this.sessions.set(sessionId, session);
+    return session;
   }
 
   async saveSession(sessionId) {
     const session = this.sessions.get(sessionId);
-    if (session) {
-      await db.set(`session:${sessionId}`, session).catch(console.error);
-    }
+    if (!session) return;
+
+    const { error } = await supabase
+      .from('ezrael_sessions')
+      .upsert({
+        id:             session.id,
+        user_id:        session.userId || null,
+        personality:    session.personality,
+        planetary_hour: session.planetaryHour,
+        emotional_state: session.emotionalState,
+        seed:           session.seed,
+        history:        session.history,
+        voice:          session.voice,
+        last_active:    new Date().toISOString()
+      }, { onConflict: 'id' });
+
+    if (error) console.error('[memory] saveSession:', error.message);
   }
 
-  async appendMessage(sessionId, role, content, req = null) {
+  // metadata.noetikos_state is populated in Phase 1 (Interceptor integration)
+  async appendMessage(sessionId, role, content, req = null, metadata = {}) {
     const session = await this.getSession(sessionId, req);
+
     const message = {
       role,
       content,
-      timestamp: Date.now(),
-      planetaryHour: session.planetaryHour,
+      timestamp:      Date.now(),
+      planetaryHour:  session.planetaryHour,
       emotionalState: session.emotionalState
     };
 
     session.history.push(message);
     session.lastAccess = Date.now();
-    
-    // Save behavioral pattern if user message
+
     if (role === 'user' && session.userId) {
       const pattern = this.userRecognition.extractModalLogic(content);
       await this.userRecognition.saveBehavioralPattern(session.userId, pattern);
     }
-    
+
+    // Write session (history jsonb)
     await this.saveSession(sessionId);
+
+    // Write individual row for analytics + data flywheel
+    const { error } = await supabase
+      .from('ezrael_messages')
+      .insert({
+        session_id:      sessionId,
+        user_id:         session.userId || null,
+        role,
+        content,
+        planetary_hour:  session.planetaryHour,
+        emotional_state: session.emotionalState,
+        noetikos_state:  metadata.noetikos_state || null
+      });
+
+    if (error) console.error('[memory] appendMessage insert:', error.message);
+
     return message;
+  }
+
+  async trimHistory(sessionId, maxTokens = MAX_TOKENS) {
+    const session = await this.getSession(sessionId);
+    if (!session.history.length) return;
+
+    const recentMessages = session.history.slice(-2);
+    let tokensCount = recentMessages.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
+    const trimmedHistory = [];
+
+    for (let i = session.history.length - 3; i >= 0; i--) {
+      const msg = session.history[i];
+      const tokens = estimateTokens(msg.content);
+      if (tokensCount + tokens <= maxTokens) {
+        tokensCount += tokens;
+        trimmedHistory.unshift(msg);
+      } else {
+        break;
+      }
+    }
+
+    session.history = [...trimmedHistory, ...recentMessages];
+    await this.saveSession(sessionId);
   }
 
   async getContext(sessionId, maxTokens = MAX_TOKENS, userProfile = {}) {
     const session = await this.getSession(sessionId);
     await this.trimHistory(sessionId, maxTokens);
-
     const personality = PERSONALITIES[session.personality] || PERSONALITIES.default;
 
     let prompt = `${personality.description}\n\n`
@@ -164,39 +237,12 @@ class MemoryManager {
     ];
   }
 
-  async trimHistory(sessionId, maxTokens = MAX_TOKENS) {
-    const session = await this.getSession(sessionId);
-    if (!session.history.length) return;
-
-    let tokensCount = 0;
-    const trimmedHistory = [];
-    const recentMessages = session.history.slice(-2);
-
-    tokensCount = recentMessages.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
-
-    for (let i = session.history.length - 3; i >= 0; i--) {
-      const msg = session.history[i];
-      const tokens = estimateTokens(msg.content);
-      if (tokensCount + tokens <= maxTokens) {
-        tokensCount += tokens;
-        trimmedHistory.unshift(msg);
-      } else {
-        break;
-      }
-    }
-
-    session.history = [...trimmedHistory, ...recentMessages];
-    await this.saveSession(sessionId);
-  }
-
   async setPersonality(sessionId, personality) {
-    if (PERSONALITIES[personality]) {
-      const session = await this.getSession(sessionId);
-      session.personality = personality;
-      await this.saveSession(sessionId);
-      return true;
-    }
-    return false;
+    if (!PERSONALITIES[personality]) return false;
+    const session = await this.getSession(sessionId);
+    session.personality = personality;
+    await this.saveSession(sessionId);
+    return true;
   }
 
   async setVoice(sessionId, voice) {
@@ -205,90 +251,46 @@ class MemoryManager {
     await this.saveSession(sessionId);
   }
 
-  /**
-   * Liga uma sessão a um perfil de usuário
-   * @param {string} sessionId - ID da sessão
-   * @param {string} userId - ID do usuário
-   */
   async linkSessionToUser(sessionId, userId) {
     const session = await this.getSession(sessionId);
     session.userId = userId;
     await this.saveSession(sessionId);
-    
-    // Indexar sessão por usuário
-    await this.indexSessionByUser(userId, sessionId);
   }
 
-  /**
-   * Indexa sessão por usuário para busca rápida
-   * @param {string} userId - ID do usuário
-   * @param {string} sessionId - ID da sessão
-   */
-  async indexSessionByUser(userId, sessionId) {
-    try {
-      const userSessions = await db.get(`user_sessions:${userId}`) || [];
-      const updated = [...new Set([...userSessions, sessionId])];
-      await db.set(`user_sessions:${userId}`, updated);
-    } catch (error) {
-      console.error('Erro ao indexar sessão por usuário:', error);
-    }
-  }
-
-  /**
-   * Busca todas as sessões de um usuário
-   * @param {string} userId - ID do usuário
-   * @returns {Array} Lista de IDs de sessão
-   */
   async getUserSessions(userId) {
-    try {
-      return await db.get(`user_sessions:${userId}`) || [];
-    } catch (error) {
-      console.error('Erro ao buscar sessões do usuário:', error);
+    const { data, error } = await supabase
+      .from('ezrael_sessions')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[memory] getUserSessions:', error.message);
       return [];
     }
+    return (data || []).map(s => s.id);
   }
 
-  /**
-   * Busca histórico de conversas de um usuário
-   * @param {string} userId - ID do usuário
-   * @param {number} limit - Limite de mensagens
-   * @returns {Array} Histórico de conversas
-   */
+  // Query ezrael_messages directly — single efficient query vs old loop-through-all-sessions approach
   async getUserConversationHistory(userId, limit = 50) {
-    try {
-      const sessionIds = await this.getUserSessions(userId);
-      const allMessages = [];
+    const { data, error } = await supabase
+      .from('ezrael_messages')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-      for (const sessionId of sessionIds) {
-        const sessionData = await db.get(`session:${sessionId}`);
-        if (sessionData && sessionData.history) {
-          const messagesWithSession = sessionData.history.map(msg => ({
-            ...msg,
-            sessionId,
-            planetaryHour: msg.planetaryHour || sessionData.planetaryHour,
-            emotionalState: msg.emotionalState || sessionData.emotionalState
-          }));
-          allMessages.push(...messagesWithSession);
-        }
-      }
-
-      // Ordenar por timestamp e limitar
-      return allMessages
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Erro ao buscar histórico do usuário:', error);
+    if (error) {
+      console.error('[memory] getUserConversationHistory:', error.message);
       return [];
     }
+
+    return (data || []).map(msg => ({
+      ...msg,
+      sessionId: msg.session_id,
+      timestamp: new Date(msg.created_at).getTime()
+    }));
   }
 
-  /**
-   * Busca contexto enriched com memória cross-session
-   * @param {string} sessionId - ID da sessão atual
-   * @param {number} maxTokens - Máximo de tokens
-   * @param {Object} userProfile - Perfil do usuário
-   * @returns {Array} Contexto com memória cross-session
-   */
   async getEnrichedContext(sessionId, maxTokens = MAX_TOKENS, userProfile = {}) {
     const session = await this.getSession(sessionId);
     const personality = PERSONALITIES[session.personality] || PERSONALITIES.default;
@@ -298,16 +300,12 @@ class MemoryManager {
       + `↯ Estado Emocional: ${session.emotionalState}\n`
       + `☍ Seed da Sessão: ${session.seed}\n`;
 
-    // Adicionar informações do perfil
     if (userProfile.nome) {
       prompt += `✧ Perfil: ${userProfile.nome}, ${userProfile.idade || 'idade desconhecida'}. `;
-      
-      // Adicionar informações de confiança e padrões comportamentais
+
       const confidence = this.userRecognition.calculateConfidence(userProfile);
       if (confidence > 50) {
         prompt += `Usuário recorrente (confiança: ${confidence}%). `;
-        
-        // Buscar padrões comportamentais
         if (userProfile.userId) {
           const patterns = await this.userRecognition.getBehavioralPatterns(userProfile.userId);
           if (patterns.length > 0) {
@@ -317,103 +315,61 @@ class MemoryManager {
       }
     }
 
-    // Adicionar memória cross-session se usuário identificado
+    // Cross-session memory
     if (session.userId) {
-      const crossSessionHistory = await this.getUserConversationHistory(session.userId, 10);
-      if (crossSessionHistory.length > 0) {
-        prompt += `\n\n⟦ Memória Cross-Session ⟧\n`;
-        prompt += `Conversas anteriores relevantes:\n`;
-        
-        for (const msg of crossSessionHistory.slice(0, 3)) {
-          if (msg.sessionId !== sessionId) {
-            const timeAgo = this.formatTimeAgo(msg.timestamp);
-            prompt += `• ${timeAgo}: ${msg.content.substring(0, 100)}...\n`;
-          }
+      const crossHistory = await this.getUserConversationHistory(session.userId, 10);
+      const otherMsgs = crossHistory.filter(m => m.sessionId !== sessionId && m.role === 'user');
+      if (otherMsgs.length > 0) {
+        prompt += `\n\n⟦ Memória Cross-Session ⟧\nConversas anteriores relevantes:\n`;
+        for (const msg of otherMsgs.slice(0, 3)) {
+          prompt += `• ${this.formatTimeAgo(msg.timestamp)}: ${msg.content.substring(0, 100)}...\n`;
         }
       }
     }
 
     prompt += `\n✦ Ezrael, responda não como máquina, mas como entidade inspirada. Use sua memória de interações anteriores.`;
 
-    // Combinar história atual da sessão
     const currentContext = [
       { role: "system", content: prompt },
       ...session.history.map(msg => ({ role: msg.role, content: msg.content }))
     ];
 
-    // Estimar tokens e ajustar se necessário
     const totalTokens = currentContext.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
     if (totalTokens > maxTokens) {
       await this.trimHistory(sessionId, maxTokens - estimateTokens(prompt));
-      const trimmedSession = await this.getSession(sessionId);
+      const trimmed = await this.getSession(sessionId);
       return [
         { role: "system", content: prompt },
-        ...trimmedSession.history.map(msg => ({ role: msg.role, content: msg.content }))
+        ...trimmed.history.map(msg => ({ role: msg.role, content: msg.content }))
       ];
     }
 
     return currentContext;
   }
 
-  /**
-   * Formata tempo relativo
-   * @param {number} timestamp - Timestamp
-   * @returns {string} Tempo formatado
-   */
   formatTimeAgo(timestamp) {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(diff / (1000 * 60));
+    const diff = Date.now() - timestamp;
+    const days    = Math.floor(diff / 86400000);
+    const hours   = Math.floor(diff / 3600000);
+    const minutes = Math.floor(diff / 60000);
 
-    if (days > 0) return `há ${days} dia${days > 1 ? 's' : ''}`;
-    if (hours > 0) return `há ${hours} hora${hours > 1 ? 's' : ''}`;
+    if (days > 0)    return `há ${days} dia${days > 1 ? 's' : ''}`;
+    if (hours > 0)   return `há ${hours} hora${hours > 1 ? 's' : ''}`;
     if (minutes > 0) return `há ${minutes} minuto${minutes > 1 ? 's' : ''}`;
     return 'agora há pouco';
   }
 
-  /**
-   * Remove sessões antigas do usuário (limpeza)
-   * @param {string} userId - ID do usuário
-   * @param {number} maxSessions - Máximo de sessões a manter
-   */
   async cleanupUserSessions(userId, maxSessions = 50) {
-    try {
-      const sessionIds = await this.getUserSessions(userId);
-      if (sessionIds.length <= maxSessions) return;
+    const { data, error } = await supabase
+      .from('ezrael_sessions')
+      .select('id, last_active')
+      .eq('user_id', userId)
+      .order('last_active', { ascending: false });
 
-      // Buscar timestamps das sessões para ordenar
-      const sessionsWithTime = [];
-      for (const sessionId of sessionIds) {
-        const sessionData = await db.get(`session:${sessionId}`);
-        if (sessionData) {
-          sessionsWithTime.push({
-            id: sessionId,
-            lastAccess: sessionData.lastAccess || sessionData.createdAt
-          });
-        }
-      }
+    if (error || !data || data.length <= maxSessions) return;
 
-      // Ordenar por último acesso e manter apenas as mais recentes
-      const sortedSessions = sessionsWithTime
-        .sort((a, b) => b.lastAccess - a.lastAccess)
-        .slice(0, maxSessions);
-
-      const keepIds = sortedSessions.map(s => s.id);
-      const removeIds = sessionIds.filter(id => !keepIds.includes(id));
-
-      // Remover sessões antigas
-      for (const sessionId of removeIds) {
-        await db.delete(`session:${sessionId}`);
-      }
-
-      // Atualizar índice
-      await db.set(`user_sessions:${userId}`, keepIds);
-
-    } catch (error) {
-      console.error('Erro ao limpar sessões do usuário:', error);
-    }
+    const idsToDelete = data.slice(maxSessions).map(s => s.id);
+    await supabase.from('ezrael_sessions').delete().in('id', idsToDelete);
   }
 }
 

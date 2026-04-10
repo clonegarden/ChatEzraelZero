@@ -90,7 +90,7 @@ app.post('/reset', async (req, res) => {
 });
 
 // Login endpoint
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -98,7 +98,7 @@ app.post('/login', (req, res) => {
       return res.status(400).json({ success: false, message: 'Usuário e senha são obrigatórios' });
     }
 
-    const user = authenticate(username, password);
+    const user = await authenticate(username, password);
 
     if (user) {
       res.cookie('loggedInUser', user.username, { 
@@ -118,7 +118,7 @@ app.post('/login', (req, res) => {
 });
 
 // Registration endpoint
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -126,7 +126,7 @@ app.post('/register', (req, res) => {
       return res.status(400).json({ success: false, message: 'Usuário e senha são obrigatórios' });
     }
 
-    const result = registerUser(username, password);
+    const result = await registerUser(username, password);
     
     if (result.success) {
       res.status(201).json(result);
